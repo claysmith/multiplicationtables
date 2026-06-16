@@ -1,18 +1,22 @@
 {
   "expo": {
-    "name": "memorizemultiplicationtables",
-    "slug": "memorizemultiplicationtables",
+    "name": "Times Tables",
+    "slug": "times-tables",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "memorizemultiplicationtables",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/images/icon.png",
+      "bundleIdentifier": "com.claysmithr.times-tables",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#208AEF",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -39,6 +43,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3678f165-4a73-495f-974c-866b802099fa"
+      }
     }
   }
 }

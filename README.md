@@ -1,56 +1,129 @@
-# Welcome to your Expo app 👋
+# Times Tables
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A multiplication table memorization app built with Expo SDK 56. Tests multiplication facts with a configurable number range, tracks wrong answers, and offers targeted practice mode.
 
-## Get started
+## Tech Stack
 
-1. Install dependencies
+- **Expo SDK 56** with Expo Router (file-based routing)
+- **React Native 0.85** + **TypeScript 6**
+- **react-native-reanimated** (animations)
+- **NativeTabs** tab navigator
+- **@expo/ui** components
 
-   ```bash
-   npm install
-   ```
+## Project Structure
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+src/
+├── app/
+│   ├── _layout.tsx         Root layout — ThemeProvider + PracticeProvider + tab navigator
+│   ├── index.tsx           Practice screen — the quiz (random or practice-failed mode)
+│   └── explore.tsx         Settings — theme, number range, practice management
+├── components/
+│   ├── app-tabs.tsx        Tab bar ("Practice" / "Settings")
+│   ├── themed-view.tsx     Themed <View> wrapper (uses useTheme)
+│   ├── themed-text.tsx     Themed <Text> wrapper with preset typography styles
+│   └── animated-icon.tsx   Splash overlay + animated logo
+├── contexts/
+│   ├── theme-context.tsx    ThemeProvider: dark/light/system override, exposes resolved scheme
+│   └── practice-context.tsx PracticeProvider: wrong-fact tracking, practice mode, number range
+├── constants/
+│   └── theme.ts            Colors (light + dark palettes), fonts, spacing scale, tab inset
+├── hooks/
+│   ├── use-color-scheme.ts       Resolved color scheme from theme context (native)
+│   ├── use-color-scheme.web.ts   Web version with SSR hydration guard
+│   └── use-theme.ts              Returns Colors[scheme] for themed components
+└── global.css               Web-only CSS custom properties for fonts
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Features
 
-### Other setup steps
+### Quiz
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+- **Practice tab** shows a random multiplication question within the configured number range
+- Type the answer and tap **Submit** (or press Return/Enter on keyboard)
+- Green feedback for correct, red for wrong (shows the correct equation)
+- Running score: correct count, total attempts, and percentage
+- **Next →** advances to the next question
 
-## Learn more
+### Configurable Number Range
 
-To learn more about developing your project with Expo, look at the following resources:
+Set the range of factors in Settings → **Number Range**:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+| Control | Default | Bounds |
+|---------|---------|--------|
+| Min     | 1       | 1 to (max − 1) |
+| Max     | 12      | (min + 1) to 20 |
 
-## Join the community
+Use the − / + steppers to adjust. The header on the Practice tab shows the current range (e.g. "1–12").
 
-Join our community of developers creating universal apps.
+### Practice Failed Mode
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Every wrong answer is tracked in the `PracticeContext`. When **Practice Failed** is enabled in Settings, the quiz draws only from facts you've gotten wrong (within the current range).
+
+- Each fact must be answered correctly **3 times in a row** to be considered mastered
+- Getting a wrong answer resets the streak to 0
+- A badge in the header shows how many facts remain: **"3 left"**
+- When all facts are mastered, an **"All mastered!"** screen appears
+- The Settings screen lists every tracked fact with its progress (e.g. "7 × 8 — 2/3 correct")
+- **Reset practice progress** clears all tracked facts
+
+### Theme
+
+Dark mode is the default. Switch between **Dark**, **Light**, or **System** in Settings → Appearance. The `ThemeContext` in `src/contexts/theme-context.tsx` manages the preference and exposes the resolved color scheme. All themed components (`ThemedView`, `ThemedText`, `useTheme` hook) automatically adapt.
+
+### Icons
+
+- Blue rounded-square background with a white plus sign
+- Generated at 1024×1024 for the main app icon
+- Android adaptive icons: foreground (transparent + blue plus), background (solid blue), monochrome (white plus)
+- Splash screen: white plus on the `#208AEF` background
+
+## Development
+
+```bash
+npm install
+npx expo start              # Expo Go / web dev server
+npx expo run:ios            # Native iOS development build
+npx expo run:android        # Native Android development build
+```
+
+### EAS Build (Expo Cloud)
+
+```bash
+npm install -g eas-cli
+eas login
+eas build:configure
+
+eas build --profile development --platform ios
+eas build --profile production --platform ios
+```
+
+Requires a `development` profile in `eas.json`:
+
+```json
+{
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    }
+  }
+}
+```
+
+## Scripts
+
+| Script            | Description                |
+|-------------------|----------------------------|
+| `npm start`       | Start Expo dev server      |
+| `npm run ios`     | Start with iOS target      |
+| `npm run android` | Start with Android target  |
+| `npm run web`     | Start with web target      |
+| `npm run lint`    | Run ESLint                 |
+| `npm run reset-project` | Reset to blank project |
+
+## Requirements
+
+- **Node.js** 18+
+- **Xcode** 16+ (for iOS builds)
+- **Expo Go** 56+ or a development build

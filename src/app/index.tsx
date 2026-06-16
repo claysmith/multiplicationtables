@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -17,6 +17,8 @@ export default function PracticeScreen() {
     recordCorrect,
     minFactor,
     maxFactor,
+    timerEnabled,
+    timerSeconds,
   } = usePractice();
   const theme = useTheme();
 
@@ -27,16 +29,18 @@ export default function PracticeScreen() {
 
   const [num1, setNum1] = useState(() => randomFactor());
   const [num2, setNum2] = useState(() => randomFactor());
-
-  useEffect(() => {
-    setNum1(randomFactor());
-    setNum2(randomFactor());
-  }, [minFactor, maxFactor, randomFactor]);
   const [answer, setAnswer] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [allDone, setAllDone] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(timerEnabled ? timerSeconds : 0);
+  const submittedRef = useRef(false);
+
+  useEffect(() => {
+    setNum1(randomFactor());
+    setNum2(randomFactor());
+  }, [minFactor, maxFactor, randomFactor]);
 
   useEffect(() => {
     if (practiceFailed && wrongCount === 0) {
@@ -46,11 +50,35 @@ export default function PracticeScreen() {
     }
   }, [practiceFailed, wrongCount]);
 
+  useEffect(() => {
+    setTimeLeft(timerEnabled ? timerSeconds : 0);
+  }, [timerEnabled, timerSeconds, num1, num2]);
+
+  useEffect(() => {
+    if (!timerEnabled || submitted) {
+      return;
+    }
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [timerEnabled, submitted, timerSeconds, num1, num2]);
+
+  useEffect(() => {
+    if (timerEnabled && !submitted && timeLeft === 0 && !submittedRef.current) {
+      submittedRef.current = true;
+      setSubmitted(true);
+      setTotalCount((c) => c + 1);
+      addWrong(num1, num2);
+    }
+  }, [timeLeft, timerEnabled, submitted, num1, num2, addWrong]);
+
   const correctAnswer = num1 * num2;
   const parsed = parseInt(answer, 10);
   const isCorrect = parsed === correctAnswer;
 
   const newQuestion = useCallback(() => {
+    submittedRef.current = false;
     if (practiceFailed && wrongCount > 0) {
       const fact = getPracticeFact();
       if (fact) {
@@ -63,8 +91,9 @@ export default function PracticeScreen() {
     setNum2(randomFactor());
   }, [practiceFailed, wrongCount, getPracticeFact, randomFactor]);
 
-  const handleSubmit = useCallback(() => {
-    if (submitted || answer === '') return;
+  const handleSubmit_ = useCallback(() => {
+    if (submittedRef.current || answer === '') return;
+    submittedRef.current = true;
     setSubmitted(true);
     setTotalCount((c) => c + 1);
     if (isCorrect) {
@@ -75,13 +104,17 @@ export default function PracticeScreen() {
     } else {
       addWrong(num1, num2);
     }
-  }, [answer, submitted, isCorrect, num1, num2, practiceFailed, recordCorrect, addWrong]);
+  }, [answer, isCorrect, num1, num2, practiceFailed, recordCorrect, addWrong]);
 
   const handleNext = useCallback(() => {
     setAnswer('');
     setSubmitted(false);
+    setTimeLeft(timerEnabled ? timerSeconds : 0);
+    submittedRef.current = false;
     newQuestion();
-  }, [newQuestion]);
+  }, [newQuestion, timerEnabled, timerSeconds]);
+
+  const timerFraction = timerEnabled && !submitted ? timeLeft / timerSeconds : 0;
 
   if (practiceFailed && wrongCount === 0 && allDone) {
     return (
@@ -139,6 +172,24 @@ export default function PracticeScreen() {
               </ThemedView>
             )}
           </ThemedView>
+          {timerEnabled && !submitted && (
+            <ThemedView style={styles.timerBarOuter}>
+              <ThemedView
+                style={[
+                  styles.timerBarInner,
+                  {
+                    width: `${timerFraction * 100}%`,
+                    backgroundColor:
+                      timerFraction > 0.5
+                        ? '#34C759'
+                        : timerFraction > 0.25
+                          ? '#FF9F0A'
+                          : '#FF3B30',
+                  },
+                ]}
+              />
+            </ThemedView>
+          )}
         </ThemedView>
 
         <ThemedView style={styles.quizArea}>
@@ -170,7 +221,7 @@ export default function PracticeScreen() {
             placeholder="?"
             placeholderTextColor={theme.textSecondary}
             returnKeyType="go"
-            onSubmitEditing={handleSubmit}
+            onSubmitEditing={handleSubmit_}
           />
 
           {submitted ? (
@@ -183,7 +234,9 @@ export default function PracticeScreen() {
               >
                 {isCorrect
                   ? '✓ Correct!'
-                  : `${num1} × ${num2} = ${correctAnswer}`}
+                  : parsed !== correctAnswer && answer !== ''
+                    ? `${num1} × ${num2} = ${correctAnswer}`
+                    : `⏱ ${num1} × ${num2} = ${correctAnswer}`}
               </ThemedText>
               <Pressable
                 onPress={handleNext}
@@ -197,7 +250,7 @@ export default function PracticeScreen() {
             </>
           ) : (
             <Pressable
-              onPress={handleSubmit}
+              onPress={handleSubmit_}
               disabled={answer === ''}
               style={({ pressed }) => [
                 styles.button,
@@ -233,6 +286,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.four,
     gap: Spacing.one,
+    alignSelf: 'stretch',
   },
   headerRow: {
     flexDirection: 'row',
@@ -243,6 +297,18 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.two,
     paddingHorizontal: Spacing.two,
     paddingVertical: Spacing.half,
+  },
+  timerBarOuter: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(128,128,128,0.3)',
+    alignSelf: 'stretch',
+    marginTop: Spacing.one,
+    marginHorizontal: Spacing.four,
+  },
+  timerBarInner: {
+    height: 4,
+    borderRadius: 2,
   },
   quizArea: {
     flex: 1,

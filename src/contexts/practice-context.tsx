@@ -19,6 +19,10 @@ export type PracticeContextType = {
   maxFactor: number;
   setMinFactor: (v: number) => void;
   setMaxFactor: (v: number) => void;
+  timerEnabled: boolean;
+  setTimerEnabled: (v: boolean) => void;
+  timerSeconds: number;
+  setTimerSeconds: (v: number) => void;
 };
 
 function factKey(a: number, b: number) {
@@ -33,6 +37,8 @@ export function PracticeProvider({ children }: { children: ReactNode }) {
   const [practiceFailed, setPracticeFailed] = useState(false);
   const [minFactor, setMinFactor] = useState(1);
   const [maxFactor, setMaxFactor] = useState(12);
+  const [timerEnabled, setTimerEnabled] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(5);
 
   const addWrong = useCallback((a: number, b: number) => {
     const key = factKey(a, b);
@@ -91,12 +97,17 @@ export function PracticeProvider({ children }: { children: ReactNode }) {
       maxFactor,
       setMinFactor,
       setMaxFactor,
+      timerEnabled,
+      setTimerEnabled,
+      timerSeconds,
+      setTimerSeconds,
     }),
     [
       wrongFacts, addWrong, recordCorrect,
       practiceFailed, setPracticeFailed, getPracticeFact,
       wrongCount, resetAll,
       minFactor, maxFactor,
+      timerEnabled, timerSeconds,
     ],
   );
 

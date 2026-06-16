@@ -1,4 +1,4 @@
-import { Platform, Pressable, StyleSheet } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -8,11 +8,20 @@ import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useThemeContext, type ThemePreference } from '@/contexts/theme-context';
 import { usePractice } from '@/contexts/practice-context';
 import { useTheme } from '@/hooks/use-theme';
+import type { ColorSchemeName } from '@/constants/theme';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: 'dark', label: 'Dark' },
   { value: 'light', label: 'Light' },
   { value: 'system', label: 'System' },
+];
+
+const SCHEME_OPTIONS: { value: ColorSchemeName; label: string }[] = [
+  { value: 'default', label: 'Default' },
+  { value: 'ocean', label: 'Ocean' },
+  { value: 'forest', label: 'Forest' },
+  { value: 'sunset', label: 'Sunset' },
+  { value: 'midnight', label: 'Midnight' },
 ];
 
 function Stepper({
@@ -99,7 +108,7 @@ const stepperStyles = StyleSheet.create({
 });
 
 export default function SettingsScreen() {
-  const { preference, setPreference } = useThemeContext();
+  const { preference, setPreference, schemeName, setSchemeName } = useThemeContext();
   const {
     wrongFacts,
     practiceFailed,
@@ -110,12 +119,17 @@ export default function SettingsScreen() {
     maxFactor,
     setMinFactor,
     setMaxFactor,
+    timerEnabled,
+    setTimerEnabled,
+    timerSeconds,
+    setTimerSeconds,
   } = usePractice();
   const theme = useTheme();
 
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
         <ThemedText type="subtitle" style={styles.title}>
           Settings
         </ThemedText>
@@ -124,7 +138,7 @@ export default function SettingsScreen() {
           <ThemedText type="default" style={styles.sectionTitle}>
             Number Range
           </ThemedText>
-          <ThemedView type="backgroundElement" style={styles.rangeCard}>
+          <ThemedView type="backgroundElement" style={styles.card}>
             <Stepper
               label="Min"
               value={minFactor}
@@ -153,9 +167,34 @@ export default function SettingsScreen() {
 
         <ThemedView style={styles.section}>
           <ThemedText type="default" style={styles.sectionTitle}>
+            Color Scheme
+          </ThemedText>
+          <ThemedView type="backgroundElement" style={styles.card}>
+            {SCHEME_OPTIONS.map((option) => (
+              <Pressable
+                key={option.value}
+                onPress={() => setSchemeName(option.value)}
+                style={[
+                  styles.option,
+                  {
+                    backgroundColor:
+                      schemeName === option.value
+                        ? theme.backgroundSelected
+                        : 'transparent',
+                  },
+                ]}
+              >
+                <ThemedText>{option.label}</ThemedText>
+              </Pressable>
+            ))}
+          </ThemedView>
+        </ThemedView>
+
+        <ThemedView style={styles.section}>
+          <ThemedText type="default" style={styles.sectionTitle}>
             Appearance
           </ThemedText>
-          <ThemedView type="backgroundElement" style={styles.optionsContainer}>
+          <ThemedView type="backgroundElement" style={styles.card}>
             {THEME_OPTIONS.map((option) => (
               <Pressable
                 key={option.value}
@@ -178,9 +217,43 @@ export default function SettingsScreen() {
 
         <ThemedView style={styles.section}>
           <ThemedText type="default" style={styles.sectionTitle}>
+            Timer
+          </ThemedText>
+          <ThemedView type="backgroundElement" style={styles.card}>
+            <Pressable
+              onPress={() => setTimerEnabled(!timerEnabled)}
+              style={[
+                styles.option,
+                {
+                  backgroundColor: timerEnabled
+                    ? theme.backgroundSelected
+                    : 'transparent',
+                },
+              ]}
+            >
+              <ThemedText>
+                {timerEnabled ? '✓ Timer On' : 'Timer Off'}
+              </ThemedText>
+            </Pressable>
+            {timerEnabled && (
+              <Stepper
+                label="Seconds"
+                value={timerSeconds}
+                onDecrement={() => setTimerSeconds(Math.max(3, timerSeconds - 1))}
+                onIncrement={() => setTimerSeconds(Math.min(30, timerSeconds + 1))}
+                min={3}
+                max={30}
+                theme={theme}
+              />
+            )}
+          </ThemedView>
+        </ThemedView>
+
+        <ThemedView style={styles.section}>
+          <ThemedText type="default" style={styles.sectionTitle}>
             Practice
           </ThemedText>
-          <ThemedView type="backgroundElement" style={styles.optionsContainer}>
+          <ThemedView type="backgroundElement" style={styles.card}>
             <Pressable
               onPress={() => setPracticeFailed(!practiceFailed)}
               style={[
@@ -225,6 +298,7 @@ export default function SettingsScreen() {
         </ThemedView>
 
         {Platform.OS === 'web' && <WebBadge />}
+        </ScrollView>
       </SafeAreaView>
     </ThemedView>
   );
@@ -239,8 +313,10 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     maxWidth: MaxContentWidth,
+  },
+  scrollContent: {
     paddingHorizontal: Spacing.four,
-    paddingBottom: BottomTabInset + Spacing.three,
+    paddingBottom: BottomTabInset + Spacing.six,
   },
   title: {
     textAlign: 'center',
@@ -253,7 +329,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontWeight: '600',
   },
-  optionsContainer: {
+  card: {
     borderRadius: Spacing.three,
     overflow: 'hidden',
   },
@@ -272,9 +348,5 @@ const styles = StyleSheet.create({
   },
   resetText: {
     color: '#FF3B30',
-  },
-  rangeCard: {
-    borderRadius: Spacing.three,
-    overflow: 'hidden',
   },
 });
